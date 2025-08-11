@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>مغسلة النقابة - حجز موعد</title>
+  <style>
+    :root{ --accent:#f6b400; --bg:#0f1724; --card:#ffffff; --text:#0b1220 }
+    body{font-family: "Segoe UI", Tahoma, Arial; margin:0; background: #f4f7fb; color:var(--text)}
+    header{background:linear-gradient(90deg,#0f1724,#122033); color:white; padding:18px 16px; text-align:center}
+    .container{max-width:900px;margin:22px auto;padding:18px}
+    .card{background:white;border-radius:10px;padding:18px;box-shadow:0 6px 20px rgba(2,6,23,0.06)}
+    h1{margin:0 0 6px;font-size:20px}
+    form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    label{font-size:13px;margin-bottom:6px;display:block}
+    input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #d7e0ea;font-size:14px}
+    .full{grid-column:1/-1}
+    .actions{display:flex;gap:10px;justify-content:flex-start;margin-top:12px}
+    button{background:var(--accent);border:none;padding:10px 16px;border-radius:8px;color:white;font-weight:600;cursor:pointer}
+    .qr-box{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+    .small{font-size:13px;color:#4b5563}
+    @media(max-width:700px){form{grid-template-columns:1fr} .actions{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <header>
+    <h2>مغسلة النقابة</h2>
+    <div class="small">سجل بياناتك واحجز موعد لغسيل سيارتك بسرعة</div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h1>حجز غسيل سيارة</h1>
+      <p class="small">املأ البيانات أدناه ثم اضغط حجز. سنرسل تأكيد عبر الرسائل أو الواتس إذا ربطت الخدمة.</p>
+
+      <form id="bookingForm">
+        <div>
+          <label>الاسم الكامل</label>
+          <input type="text" id="name" required />
+        </div>
+        <div>
+          <label>رقم الجوال</label>
+          <input type="tel" id="phone" required placeholder="05xxxxxxxx" />
+        </div>
+        <div>
+          <label>نوع المركبة</label>
+          <select id="vehicle">
+            <option>سيدان</option>
+            <option>جيب / SUV</option>
+            <option>شاحنة صغيرة</option>
+            <option>دراجة</option>
+          </select>
+        </div>
+        <div>
+          <label>الخدمة المطلوبة</label>
+          <select id="service">
+            <option>غسيل خارجي</option>
+            <option>غسيل داخلي + خارجي</option>
+            <option>واكس وحماية</option>
+            <option>تنظيف بالبخار</option>
+          </select>
+        </div>
+
+        <div>
+          <label>التاريخ</label>
+          <input type="date" id="date" required />
+        </div>
+        <div>
+          <label>الوقت المفضل</label>
+          <input type="time" id="time" required />
+        </div>
+
+        <div class="full">
+          <label>ملاحظات إضافية</label>
+          <textarea id="notes" rows="3"></textarea>
+        </div>
+
+        <div class="actions full">
+          <button type="submit">حجز الآن</button>
+          <button type="button" id="generateQr">طباعة/جلب باركود صفحة الحجز</button>
+        </div>
+      </form>
+
+      <div id="message" style="margin-top:12px"></div>
+
+      <hr style="margin:16px 0" />
+
+      <div class="qr-box">
+        <div>
+          <strong>مسح هذا الكود للحجز السريع:</strong>
+          <div id="qrcode"></div>
+        </div>
+        <div class="small">
+          يمكنك طباعة هذا الكود ووضعه عند الاستقبال أو داخل الفاتورة ليستخدمه العملاء.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- مكتبة توليد QR صغيرة (cdn) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const bookingUrl = location.origin + location.pathname;
+    new QRCode(document.getElementById("qrcode"), { text: bookingUrl, width:140, height:140 });
+
+    const form = document.getElementById("bookingForm");
+    const message = document.getElementById("message");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById("name").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        vehicle: document.getElementById("vehicle").value,
+        service: document.getElementById("service").value,
+        date: document.getElementById("date").value,
+        time: document.getElementById("time").value,
+        notes: document.getElementById("notes").value.trim()
+      };
+
+      try {
+        const res = await fetch('/api/book', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          message.innerHTML = '<span style="color:green">تم الحجز بنجاح. رقم الحجز: ' + data.id + '</span>';
+          form.reset();
+        } else {
+          message.innerHTML = '<span style="color:red">خطأ: ' + (data.error || 'فشل الحجز') + '</span>';
+        }
+      } catch (err) {
+        message.innerHTML = '<span style="color:red">فشل الاتصال بالخادم.</span>';
+        console.error(err);
+      }
+    });
+
+    document.getElementById("generateQr").addEventListener("click", () => {
+      window.print();
+    });
+  </script>
+</body>
+</html>

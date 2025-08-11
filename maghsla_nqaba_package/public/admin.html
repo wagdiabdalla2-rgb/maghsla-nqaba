@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>لوحة تحكم - مغسلة النقابة</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;background:#f4f7fb;color:#0b1220;margin:0;padding:0}
+.header{background:#0f1724;color:white;padding:12px 16px;text-align:center}
+.container{max-width:1000px;margin:18px auto;padding:12px}
+.card{background:white;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid #eee;text-align:right}
+th{background:#fafafa}
+.badge{display:inline-block;padding:4px 8px;border-radius:6px;background:#eee}
+.search{margin-bottom:12px}
+</style>
+</head>
+<body>
+<div class="header"><h2>لوحة تحكم - الحجوزات</h2></div>
+<div class="container">
+  <div class="card">
+    <div class="search">
+      <input id="q" placeholder="ابحث باسم أو رقم الجوال" style="padding:8px;width:100%;box-sizing:border-box;border-radius:6px;border:1px solid #ddd" />
+    </div>
+    <table id="tb">
+      <thead>
+        <tr>
+          <th>رقم</th><th>الاسم</th><th>الهاتف</th><th>الخدمة</th><th>التاريخ</th><th>الوقت</th><th>ملاحظات</th><th>تاريخ الإنشاء</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+async function load(){
+  try{
+    const res = await fetch('/api/bookings');
+    const rows = await res.json();
+    window._rows = rows;
+    render(rows);
+  }catch(e){console.error(e)}
+}
+function render(rows){
+  const tbody = document.querySelector("#tb tbody");
+  tbody.innerHTML = "";
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.id}</td><td>${r.name}</td><td>${r.phone}</td><td>${r.service}</td><td>${r.date}</td><td>${r.time}</td><td>${r.notes||''}</td><td>${r.created_at}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+document.getElementById('q').addEventListener('input', (e)=>{
+  const q = e.target.value.trim().toLowerCase();
+  if(!q) return render(window._rows||[]);
+  const filtered = (window._rows||[]).filter(r=> (r.name||'').toLowerCase().includes(q) || (r.phone||'').toLowerCase().includes(q));
+  render(filtered);
+});
+load();
+</script>
+</body>
+</html>
